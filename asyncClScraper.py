@@ -1,6 +1,7 @@
 import time
 from selenium import webdriver
 import csv
+import asyncio
 
 #setup driver for Chrome
 def initialize_driver():
@@ -30,9 +31,9 @@ def find_surrounding_loc(start_point):
 
 #function that searches each page and assigns to csv
 #all output is appended to csv
-def search(search_loc):
+async def search(search_loc):
   # driver = webdriver.Chrome('/usr/bin/chromedriver')
-  driver.get(f'http://{search_loc}.craigslist.org/d/free-stuff/search/zip')
+  await driver.get(f'http://{search_loc}.craigslist.org/d/free-stuff/search/zip')
   where = driver.find_elements_by_class_name('rows')
 
   #can't say I understand why I had to write this as a loop
@@ -54,7 +55,7 @@ def search(search_loc):
       place = item_loc.text
 
       #search link for item details
-      desc = expand_desc(item_details_link)
+      desc = await expand_desc(item_details_link)
 
       #write output to csv
       write_to_csv(title, date, place, desc, link)
@@ -64,17 +65,16 @@ def search(search_loc):
 
 
 #clicks on each item's link for inner details
-def expand_desc(url):
+async def expand_desc(url):
   print(url)
 
   #initializing a new driver could be the reason we're slowing down
   explorer = initialize_driver()
   try:
-    explorer.get(url)
+    await explorer.get(url)
     body = explorer.find_elements_by_css_selector('section #postingbody')
     body = body[0].text
     explorer.quit()
-    print(body)
     return body
   except:
     print('in error handling')
@@ -96,21 +96,20 @@ def join_multi_word_names(place_name):
 
 
 ###main thread begins here###
-if __name__ == "__main__":
-  print("beginning main thread")
-  #input our starting location
-  starting_point = join_multi_word_names(input("where should we begin our search? - please enter a place name - "))
-  #initialize our main driver
-  driver = initialize_driver()
 
-  #grabs all regional neighbors of our starting location
-  places_to_search = find_surrounding_loc(starting_point)
-  print(places_to_search)
+#input our starting location
+starting_point = join_multi_word_names(input("where should we begin our search? - please enter a place name - "))
+#initialize our main driver
+driver = initialize_driver()
 
-  #searches each page and saves each line to csv
-  for place in places_to_search:
-    search(place)
+#grabs all regional neighbors of our starting location
+places_to_search = find_surrounding_loc(starting_point)
+print(places_to_search)
 
-  driver.quit()
+#searches each page and saves each line to csv
+for place in places_to_search:
+  search(place)
+
+driver.quit()
 
 
